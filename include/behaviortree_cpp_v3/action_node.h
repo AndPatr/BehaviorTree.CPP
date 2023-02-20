@@ -64,6 +64,33 @@ public:
 };
 
 /**
+ * @brief The NoThreadAsychActionNodeis an ActionNode that
+ * explicitly does not prevent the status RUNNING and doesn't require
+ * an implementation of halt().
+ */
+
+class NoThreadAsychActionNode : public ActionNodeBase
+{
+public:
+  NoThreadAsychActionNode(const std::string& name, const NodeConfiguration& config) :
+    ActionNodeBase(name, config)
+  {}
+
+  bool isHaltRequested() const
+  {
+    return halt_requested_.load();
+  }
+
+  virtual NodeStatus executeTick() override final;
+
+  virtual void halt() override;
+
+private:
+  std::exception_ptr exptr_;
+  std::atomic_bool halt_requested_;
+};
+
+/**
  * @brief The SimpleActionNode provides an easy to use SyncActionNode.
  * The user should simply provide a callback with this signature
  *

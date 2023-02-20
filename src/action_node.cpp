@@ -211,3 +211,45 @@ void AsyncActionNode::halt()
   }
   thread_handle_ = {};
 }
+
+NodeStatus BT::NoThreadAsychActionNode::executeTick()
+{
+  if (status() == NodeStatus::IDLE)
+  {
+    setStatus(NodeStatus::RUNNING);
+    halt_requested_ = false;
+    try
+    {
+      auto status = tick();
+      if (!isHaltRequested())
+      {
+        setStatus(status);
+      }
+    }
+    catch (std::exception&)
+    {
+      std::cerr << "\nUncaught exception from the method tick(): ["
+                << registrationName() << "/" << name() << "]\n"
+                << std::endl;
+
+      exptr_ = std::current_exception();
+      setStatus(BT::NodeStatus::IDLE);
+    }
+    emitStateChanged();
+  }
+  if (exptr_)
+  {
+    // The official interface of std::exception_ptr does not define any move
+    // semantics. Thus, we copy and reset exptr_ manually.
+    const auto exptr_copy = exptr_;
+    exptr_ = nullptr;
+    std::rethrow_exception(exptr_copy);
+  }
+  return status();
+}
+
+void NoThreadAsychActionNode::halt()
+{
+  halt_requested_.store(true);
+
+}
